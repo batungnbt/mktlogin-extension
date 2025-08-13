@@ -1,0 +1,35 @@
+{
+  "name": "mkt-login-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension hỗ trợ lưu trữ và tự động điền thông tin đăng nhập",
+  "main": "manifest.json",
+  "scripts": {
+    "build": "echo 'Extension ready for Chrome'",
+    "pack": "echo 'Use Chrome Extensions page to pack extension'",
+    "dev": "echo 'Load unpacked extension in Chrome Developer Mode'"
+  },
+  "keywords": [
+    "chrome-extension",
+    "login",
+    "autofill",
+    "password-manager",
+    "form-filler"
+  ],
+  "author": "MKT Developer",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/mkt-login-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/mkt-login-extension/issues"
+  },
+  "homepage": "https://github.com/your-username/mkt-login-extension#readme",
+  "engines": {
+    "chrome": ">=88.0"
+  },
+  "manifest": {
+    "version": 3,
+    "minimum_chrome_version": "88"
+  }
+}
