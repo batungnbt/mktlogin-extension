@@ -7,10 +7,23 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>XPath Extractor</h2>
+            <h2>🎯 XPath Extractor</h2>
             <p>Click vào phần tử trên trang để lấy XPath</p>
-            <div class="info-notice">
-                💡 <small>XPath options sẽ hiển thị trực tiếp trên trang web khi bạn chọn phần tử.</small>
+        </div>
+        
+        <div class="instructions-guide">
+            <h3>📖 Hướng dẫn sử dụng:</h3>
+            <div class="instruction-item">
+                <span class="instruction-icon">🖱️</span>
+                <span>Click chuột: Chọn phần tử</span>
+            </div>
+            <div class="instruction-item">
+                <span class="instruction-icon">⌨️</span>
+                <span>Phím mũi tên: Di chuyển lên/xuống/trái/phải</span>
+            </div>
+            <div class="instruction-item">
+                <span class="instruction-icon">🚪</span>
+                <span>Phím ESC: Thoát chế độ chọn</span>
             </div>
         </div>
         
@@ -19,27 +32,7 @@
             <button id="clearBtn" class="btn btn-secondary">Xóa</button>
         </div>
         
-        <div class="xpath-section">
-            <label>XPath Options:</label>
-            <div id="xpathOptions" class="xpath-options">
-                <div class="placeholder-message">XPath options sẽ hiển thị ở đây...</div>
-            </div>
-            
-            <div class="selected-xpath" style="display: none;">
-                <label for="selectedXPath">XPath đã chọn:</label>
-                <div class="xpath-container">
-                    <textarea id="selectedXPath" readonly placeholder="Chọn một XPath từ danh sách trên..."></textarea>
-                    <button id="copyBtn" class="btn btn-copy" title="Copy XPath">📋</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="element-info">
-            <label>Thông tin phần tử:</label>
-            <div id="elementInfo" class="info-box">
-                <span class="placeholder">Chưa chọn phần tử nào</span>
-            </div>
-        </div>
+
         
         <div class="status">
             <span id="status">Sẵn sàng</span>

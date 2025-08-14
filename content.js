@@ -2,7 +2,9 @@ class XPathSelector {
   constructor() {
     this.isActive = false;
     this.highlightedElement = null;
+    this.selectedElement = null;
     this.overlay = null;
+    this.selectedOverlay = null;
     this.tooltip = null;
     this.hideTimeout = null;
     this.boundHandlers = {
@@ -44,7 +46,6 @@ class XPathSelector {
 
     this.isActive = true;
     this.createOverlay();
-    this.createInstructions();
     this.addEventListeners();
 
     // Add visual indicator
@@ -65,8 +66,8 @@ class XPathSelector {
 
     this.removeEventListeners();
     this.removeHighlight();
+    this.removeSelectedHighlight();
     this.removeOverlay();
-    this.removeInstructions();
     this.removeXPathPanel();
 
     // Reset cursor and class
@@ -75,6 +76,7 @@ class XPathSelector {
   }
 
   createOverlay() {
+    // Hover overlay (red)
     this.overlay = document.createElement("div");
     this.overlay.id = "xpath-selector-overlay";
     this.overlay.style.cssText = `
@@ -87,28 +89,23 @@ class XPathSelector {
             box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
         `;
     document.body.appendChild(this.overlay);
-  }
 
-  createInstructions() {
-    this.instructions = document.createElement("div");
-    this.instructions.className = "xpath-instructions";
-    this.instructions.innerHTML = `
-            <div style="margin-bottom: 8px; font-weight: bold;">🎯 Chế độ chọn XPath đang hoạt động</div>
-            <div style="font-size: 12px; line-height: 1.4;">
-                • Click vào phần tử để lấy XPath<br>
-                • Nhấn <span class="key">ESC</span> để tắt chế độ chọn<br>
-                • Hoặc click "Tắt chế độ chọn" trong popup
-            </div>
+    // Selected overlay (green)
+    this.selectedOverlay = document.createElement("div");
+    this.selectedOverlay.id = "xpath-selector-selected-overlay";
+    this.selectedOverlay.style.cssText = `
+            position: absolute;
+            pointer-events: none;
+            border: 3px solid #4CAF50;
+            background: rgba(76, 175, 80, 0.15);
+            z-index: 999998;
+            display: none;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
         `;
-    document.body.appendChild(this.instructions);
-
-    // Auto hide after 5 seconds
-    setTimeout(() => {
-      if (this.instructions && this.instructions.parentNode) {
-        this.instructions.style.opacity = "0.7";
-      }
-    }, 5000);
+    document.body.appendChild(this.selectedOverlay);
   }
+
+
 
   addEventListeners() {
     // Sử dụng capture: true để chặn event ở giai đoạn capture
@@ -186,7 +183,7 @@ class XPathSelector {
     event.stopImmediatePropagation();
 
     const element = event.target;
-    if (element === this.overlay) return;
+    if (element === this.overlay || element === this.selectedOverlay) return;
 
     this.highlightElement(element);
   }
@@ -195,7 +192,7 @@ class XPathSelector {
     if (!this.isActive) return;
 
     const element = event.target;
-    if (element === this.overlay || element === this.tooltip) return;
+    if (element === this.overlay || element === this.tooltip || element === this.selectedOverlay) return;
 
     // Don't trigger selection if clicking on XPath panel
     if (element.closest("#xpath-extractor-panel")) return;
@@ -204,6 +201,9 @@ class XPathSelector {
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
+
+    // Clear previous selection before selecting new element
+    this.removeSelectedHighlight();
 
     this.selectElement(element);
   }
@@ -218,8 +218,43 @@ class XPathSelector {
 
       // Notify background script that selection was deactivated
       chrome.runtime.sendMessage({
-        type: "SELECTION_DEACTIVATED",
+        action: "selectionDeactivated",
       });
+      return;
+    }
+
+    // Navigation with arrow keys
+    if (
+      ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Use selectedElement as starting point if available, otherwise use highlightedElement
+      const startElement = this.selectedElement || this.highlightedElement;
+      if (!startElement) return;
+
+      let targetElement = null;
+
+      switch (event.key) {
+        case "ArrowUp":
+          targetElement = this.getParentElement(startElement);
+          break;
+        case "ArrowDown":
+          targetElement = this.getFirstChildElement(startElement);
+          break;
+        case "ArrowLeft":
+          targetElement = this.getPreviousSiblingElement(startElement);
+          break;
+        case "ArrowRight":
+          targetElement = this.getNextSiblingElement(startElement);
+          break;
+      }
+
+      if (targetElement) {
+        this.highlightElement(targetElement);
+        this.selectElement(targetElement);
+      }
     }
   }
 
@@ -238,9 +273,83 @@ class XPathSelector {
     this.overlay.style.height = rect.height + "px";
   }
 
+  highlightSelectedElement(element) {
+    this.selectedElement = element;
+
+    const rect = element.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft =
+      window.pageXOffset || document.documentElement.scrollLeft;
+
+    this.selectedOverlay.style.display = "block";
+    this.selectedOverlay.style.left = rect.left + scrollLeft + "px";
+    this.selectedOverlay.style.top = rect.top + scrollTop + "px";
+    this.selectedOverlay.style.width = rect.width + "px";
+    this.selectedOverlay.style.height = rect.height + "px";
+  }
+
+  // Navigation helper methods
+  getParentElement(element) {
+    const parent = element.parentElement;
+    if (
+      parent &&
+      parent !== document.body &&
+      parent !== document.documentElement
+    ) {
+      return parent;
+    }
+    return null;
+  }
+
+  getFirstChildElement(element) {
+    const children = Array.from(element.children).filter(
+      (child) =>
+        child !== this.overlay &&
+        !child.id?.startsWith("xpath-") &&
+        child.offsetWidth > 0 &&
+        child.offsetHeight > 0
+    );
+    return children.length > 0 ? children[0] : null;
+  }
+
+  getPreviousSiblingElement(element) {
+    let sibling = element.previousElementSibling;
+    while (sibling) {
+      if (
+        sibling !== this.overlay &&
+        !sibling.id?.startsWith("xpath-") &&
+        sibling.offsetWidth > 0 &&
+        sibling.offsetHeight > 0
+      ) {
+        return sibling;
+      }
+      sibling = sibling.previousElementSibling;
+    }
+    return null;
+  }
+
+  getNextSiblingElement(element) {
+    let sibling = element.nextElementSibling;
+    while (sibling) {
+      if (
+        sibling !== this.overlay &&
+        !sibling.id?.startsWith("xpath-") &&
+        sibling.offsetWidth > 0 &&
+        sibling.offsetHeight > 0
+      ) {
+        return sibling;
+      }
+      sibling = sibling.nextElementSibling;
+    }
+    return null;
+  }
+
   selectElement(element) {
     const xpathOptions = this.generateMultipleXPaths(element);
     const elementData = this.getElementData(element);
+
+    // Highlight selected element with fixed border
+    this.highlightSelectedElement(element);
 
     // Show XPath options directly on the page
     this.showXPathPanel(xpathOptions, elementData, element);
@@ -252,11 +361,6 @@ class XPathSelector {
   showXPathPanel(xpathOptions, elementInfo, targetElement) {
     // Remove existing panel if any
     this.removeXPathPanel();
-
-    // Hide instructions when panel is shown to avoid overlap
-    if (this.instructions) {
-      this.instructions.style.display = "none";
-    }
 
     // Create panel container
     const panel = document.createElement("div");
@@ -286,7 +390,11 @@ class XPathSelector {
             <div style="padding: 16px; border-bottom: 1px solid #333;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <h3 style="margin: 0; color: #4CAF50; font-size: 14px; font-weight: 600;">XPath Options</h3>
-                    <button id="xpath-panel-close" style="background: none; border: none; color: #999; cursor: pointer; font-size: 16px; padding: 4px;">✕</button>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button id="xpath-nav-up" style="background: #333; border: none; color: #4CAF50; cursor: pointer; font-size: 14px; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; transition: background 0.2s ease;" title="Di chuyển lên element cha" onmouseover="this.style.background='#4CAF50'; this.style.color='#fff'" onmouseout="this.style.background='#333'; this.style.color='#4CAF50'">↑</button>
+                        <button id="xpath-nav-down" style="background: #333; border: none; color: #4CAF50; cursor: pointer; font-size: 14px; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; transition: background 0.2s ease;" title="Di chuyển xuống element con" onmouseover="this.style.background='#4CAF50'; this.style.color='#fff'" onmouseout="this.style.background='#333'; this.style.color='#4CAF50'">↓</button>
+                        <button id="xpath-panel-close" style="background: none; border: none; color: #999; cursor: pointer; font-size: 16px; padding: 4px;">✕</button>
+                    </div>
                 </div>
                 <div style="font-size: 11px; color: #999;">
                     Element: <span style="color: #4CAF50;">${
@@ -360,6 +468,19 @@ class XPathSelector {
       e.preventDefault();
       e.stopPropagation();
       this.removeXPathPanel();
+    });
+
+    // Navigation button events
+    panel.querySelector("#xpath-nav-up").addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.navigateToParentElement();
+    });
+
+    panel.querySelector("#xpath-nav-down").addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.navigateToChildElement();
     });
 
     // XPath option selection
@@ -480,17 +601,36 @@ class XPathSelector {
     }
   }
 
+  navigateToParentElement() {
+    const startElement = this.selectedElement || this.highlightedElement;
+    if (!startElement) return;
+
+    const parentElement = this.getParentElement(startElement);
+    if (parentElement) {
+      this.removeSelectedHighlight();
+      this.highlightElement(parentElement);
+      this.selectElement(parentElement);
+    }
+  }
+
+  navigateToChildElement() {
+    const startElement = this.selectedElement || this.highlightedElement;
+    if (!startElement) return;
+
+    const childElement = this.getFirstChildElement(startElement);
+    if (childElement) {
+      this.removeSelectedHighlight();
+      this.highlightElement(childElement);
+      this.selectElement(childElement);
+    }
+  }
+
   removeXPathPanel() {
     const existingPanel = document.getElementById("xpath-extractor-panel");
     if (existingPanel) {
       existingPanel.remove();
     }
     this.selectedXPath = null;
-
-    // Show instructions again when panel is closed
-    if (this.instructions && this.isActive) {
-      this.instructions.style.display = "block";
-    }
   }
 
   generateMultipleXPaths(element) {
@@ -939,19 +1079,25 @@ class XPathSelector {
     this.highlightedElement = null;
   }
 
+  removeSelectedHighlight() {
+    if (this.selectedOverlay) {
+      this.selectedOverlay.style.display = "none";
+    }
+    this.selectedElement = null;
+  }
+
   removeOverlay() {
     if (this.overlay) {
       this.overlay.remove();
       this.overlay = null;
     }
-  }
-
-  removeInstructions() {
-    if (this.instructions) {
-      this.instructions.remove();
-      this.instructions = null;
+    if (this.selectedOverlay) {
+      this.selectedOverlay.remove();
+      this.selectedOverlay = null;
     }
   }
+
+
 }
 
 // Initialize XPath selector

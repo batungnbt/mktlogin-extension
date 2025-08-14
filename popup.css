@@ -32,86 +32,42 @@ body {
     opacity: 0.9;
 }
 
-.info-notice {
-    margin-top: 8px;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    border-left: 3px solid #ffd700;
-}
-
-.info-notice small {
-    font-size: 11px;
-    opacity: 0.9;
-}
-
-/* XPath Options Styling */
-.xpath-options {
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+/* Instructions Guide Styling */
+.instructions-guide {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    margin-bottom: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.xpath-option {
-    padding: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    cursor: pointer;
-    transition: all 0.2s ease;
+.instructions-guide h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: #FFD700;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-.xpath-option:last-child {
-    border-bottom: none;
-}
-
-.xpath-option:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.xpath-option.selected {
-    background: rgba(76, 175, 80, 0.2);
-    border-left: 4px solid #4CAF50;
-}
-
-.xpath-option-header {
+.instruction-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
-}
-
-.xpath-option-type {
-    font-weight: 600;
-    color: #4CAF50;
+    gap: 8px;
+    margin-bottom: 8px;
     font-size: 12px;
-    text-transform: uppercase;
+    opacity: 0.95;
 }
 
-.xpath-option-description {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.7);
+.instruction-item:last-child {
+    margin-bottom: 0;
 }
 
-.xpath-option-value {
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.9);
-    word-break: break-all;
-    line-height: 1.4;
-}
-
-.placeholder-message {
-    padding: 20px;
+.instruction-icon {
+    font-size: 14px;
+    width: 20px;
     text-align: center;
-    color: rgba(255, 255, 255, 0.6);
-    font-style: italic;
 }
 
-.selected-xpath {
-    margin-top: 15px;
-}
+
 
 .controls {
     display: flex;
@@ -157,102 +113,9 @@ body {
     transform: translateY(-2px);
 }
 
-.btn-copy {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 8px 12px;
-    font-size: 16px;
-    min-width: 40px;
-}
 
-.btn-copy:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
 
-.xpath-section {
-    margin-bottom: 20px;
-}
 
-.xpath-section label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    font-size: 14px;
-}
-
-.xpath-container {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-}
-
-#xpathResult {
-    flex: 1;
-    padding: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    resize: vertical;
-    min-height: 80px;
-    max-height: 150px;
-}
-
-#xpathResult::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-}
-
-#xpathResult:focus {
-    outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.15);
-}
-
-.element-info {
-    margin-bottom: 20px;
-}
-
-.element-info label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    font-size: 14px;
-}
-
-.info-box {
-    padding: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    min-height: 60px;
-    font-size: 12px;
-    line-height: 1.4;
-}
-
-.placeholder {
-    color: rgba(255, 255, 255, 0.6);
-    font-style: italic;
-}
-
-.element-tag {
-    color: #FFD700;
-    font-weight: bold;
-}
-
-.element-id {
-    color: #87CEEB;
-}
-
-.element-class {
-    color: #98FB98;
-}
-
-.element-text {
-    color: #FFA07A;
-}
 
 .status {
     text-align: center;
