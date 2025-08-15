@@ -9,15 +9,17 @@ class XPathExtractor {
     }
 
     initializeElements() {
-        this.toggleBtn = document.getElementById('toggleBtn');
-        this.clearBtn = document.getElementById('clearBtn');
         this.status = document.getElementById('status');
+        
+        // Main feature buttons
+        this.xpathBtn = document.getElementById('xpathBtn');
+        this.cropBtn = document.getElementById('cropBtn');
     }
 
     bindEvents() {
-        // Bind events
-        this.toggleBtn.addEventListener('click', () => this.toggleSelection());
-        this.clearBtn.addEventListener('click', () => this.clearResults());
+        // Main feature button events
+        this.xpathBtn.addEventListener('click', () => this.activateXPathMode());
+        this.cropBtn.addEventListener('click', () => this.activateCropMode());
         
         // Listen for messages from background script
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -26,8 +28,7 @@ class XPathExtractor {
             if (message.type === 'SELECTION_DEACTIVATED_BY_KEY') {
                 // Update UI when selection is deactivated via ESC key
                 this.isActive = false;
-                this.toggleBtn.textContent = 'Bật chế độ chọn';
-                this.toggleBtn.classList.remove('active');
+                this.xpathBtn.classList.remove('active');
                 this.updateStatus('Chế độ chọn đã tắt (ESC)', '');
                 sendResponse({ success: true });
             }
@@ -46,54 +47,67 @@ class XPathExtractor {
         }
     }
 
-    async toggleSelection() {
-        if (!this.currentTabId) {
-            this.updateStatus('Lỗi: Không thể truy cập tab hiện tại', 'error');
-            return;
-        }
-
+    async activateXPathMode() {
         try {
-            this.isActive = !this.isActive;
-            
+            if (!this.currentTabId) {
+                this.updateStatus('Không thể lấy thông tin tab hiện tại', 'error');
+                return;
+            }
+
+            await this.ensureContentScriptInjected();
+
             if (this.isActive) {
-                // Ensure content script is injected
-                await this.ensureContentScriptInjected();
-                
-                // Send message to activate selection mode
-                await chrome.tabs.sendMessage(this.currentTabId, {
-                    type: 'ACTIVATE_SELECTION'
-                });
-                
-                this.toggleBtn.textContent = 'Tắt chế độ chọn';
-                this.toggleBtn.classList.add('active');
-                this.updateStatus('Chế độ chọn đã bật - Click vào phần tử để lấy XPath', 'active');
+                // Deactivate selection
+                await chrome.tabs.sendMessage(this.currentTabId, { type: 'DEACTIVATE_SELECTION' });
+                this.isActive = false;
+                this.xpathBtn.classList.remove('active');
+                this.cropBtn.classList.remove('active');
+                this.updateStatus('Chế độ XPath đã tắt', '');
             } else {
-                // Deactivate selection mode
-                await chrome.tabs.sendMessage(this.currentTabId, {
-                    type: 'DEACTIVATE_SELECTION'
-                });
-                
-                this.toggleBtn.textContent = 'Bật chế độ chọn';
-                this.toggleBtn.classList.remove('active');
-                this.updateStatus('Chế độ chọn đã tắt', '');
+                // Activate XPath selection
+                await chrome.tabs.sendMessage(this.currentTabId, { type: 'ACTIVATE_SELECTION' });
+                this.isActive = true;
+                this.xpathBtn.classList.add('active');
+                this.cropBtn.classList.remove('active');
+                this.updateStatus('Chế độ XPath đã bật - Click vào phần tử để lấy XPath', 'success');
             }
         } catch (error) {
-            console.error('Error toggling selection:', error);
-            this.updateStatus('Lỗi: Không thể kích hoạt chế độ chọn', 'error');
-            this.isActive = false;
-            this.toggleBtn.textContent = 'Bật chế độ chọn';
-            this.toggleBtn.classList.remove('active');
+            console.error('Error activating XPath mode:', error);
+            this.updateStatus('Lỗi khi bật chế độ XPath', 'error');
         }
     }
 
-    clearResults() {
-        this.updateStatus('Đã xóa kết quả', '');
-        
-        // Clear stored data in background script
-        chrome.runtime.sendMessage({
-            type: 'CLEAR_STORED_XPATH'
-        });
+    async activateCropMode() {
+        try {
+            if (!this.currentTabId) {
+                this.updateStatus('Không thể lấy thông tin tab hiện tại', 'error');
+                return;
+            }
+
+            await this.ensureContentScriptInjected();
+
+            // Deactivate XPath mode if active
+            if (this.isActive) {
+                await chrome.tabs.sendMessage(this.currentTabId, { type: 'DEACTIVATE_SELECTION' });
+                this.isActive = false;
+            }
+
+            // Activate crop mode
+            await chrome.tabs.sendMessage(this.currentTabId, { type: 'ACTIVATE_CROP_MODE' });
+            this.xpathBtn.classList.remove('active');
+            this.cropBtn.classList.add('active');
+            this.updateStatus('Chế độ Crop đã bật - Kéo để chọn vùng cần crop', 'success');
+            
+            // Listen for crop completion
+            this.listenForCropCompletion();
+            
+        } catch (error) {
+            console.error('Error activating crop mode:', error);
+            this.updateStatus('Lỗi khi bật chế độ Crop', 'error');
+        }
     }
+
+
 
 
 
@@ -156,6 +170,36 @@ class XPathExtractor {
             this.status.classList.add(type);
         }
     }
+
+    // Direct Crop Methods
+    
+
+    
+    listenForCropCompletion() {
+        const messageListener = (message, sender, sendResponse) => {
+            if (message.type === 'CROP_COMPLETED') {
+                this.updateStatus('Crop hoàn thành! Ảnh đã được tải xuống.', 'success');
+                this.cropBtn.classList.remove('active');
+                
+                // Remove this listener
+                chrome.runtime.onMessage.removeListener(messageListener);
+                sendResponse({ success: true });
+            } else if (message.type === 'CROP_CANCELLED') {
+                this.updateStatus('Crop đã bị hủy', '');
+                this.cropBtn.classList.remove('active');
+                
+                // Remove this listener
+                chrome.runtime.onMessage.removeListener(messageListener);
+                sendResponse({ success: true });
+            }
+            
+            return true;
+        };
+        
+        chrome.runtime.onMessage.addListener(messageListener);
+    }
+    
+
 }
 
 // Initialize when DOM is loaded

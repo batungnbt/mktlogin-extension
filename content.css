@@ -182,3 +182,152 @@ body.xpath-selection-active::before {
         animation: none;
     }
 }
+
+/* Crop Mode Styles */
+body.crop-mode-active {
+    cursor: crosshair !important;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+body.crop-mode-active * {
+    cursor: crosshair !important;
+    pointer-events: auto !important;
+}
+
+/* Crop selection overlay */
+#crop-selection-overlay {
+    position: fixed !important;
+    border: none !important;
+    background: transparent !important;
+    z-index: 999999 !important;
+    display: none !important;
+    pointer-events: none !important;
+    box-shadow: none !important;
+    transition: all 0.1s ease !important;
+}
+
+/* Dimming overlay for crop mode */
+#crop-dimming-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    z-index: 999998 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+}
+
+/* Crop instruction overlay */
+#crop-instruction {
+    position: fixed !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: white !important;
+    padding: 10px 20px !important;
+    border-radius: 5px !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 14px !important;
+    z-index: 1000000 !important;
+    pointer-events: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    animation: fadeInDown 0.3s ease-out !important;
+}
+
+/* Crop status messages */
+.crop-status {
+    position: fixed !important;
+    top: 70px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    color: white !important;
+    padding: 10px 20px !important;
+    border-radius: 5px !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 14px !important;
+    z-index: 1000000 !important;
+    pointer-events: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    animation: fadeInDown 0.3s ease-out !important;
+}
+
+.crop-status.success {
+    background: rgba(76, 175, 80, 0.9) !important;
+}
+
+.crop-status.error {
+    background: rgba(244, 67, 54, 0.9) !important;
+}
+
+/* Animation for crop mode elements */
+@keyframes cropFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+#crop-selection-overlay.animate {
+    animation: cropFadeIn 0.2s ease-out;
+}
+
+/* Responsive design for crop mode */
+@media (max-width: 768px) {
+    #crop-instruction {
+        font-size: 12px !important;
+        padding: 8px 16px !important;
+        max-width: 90% !important;
+    }
+    
+    .crop-status {
+        font-size: 12px !important;
+        padding: 8px 16px !important;
+        max-width: 90% !important;
+    }
+}
+
+/* High contrast mode support for crop */
+@media (prefers-contrast: high) {
+    #crop-selection-overlay {
+        border-color: #ff0000 !important;
+        background: rgba(255, 0, 0, 0.2) !important;
+    }
+    
+    #crop-instruction {
+        background: #000 !important;
+        border: 2px solid #fff !important;
+    }
+}
+
+/* Reduced motion support for crop */
+@media (prefers-reduced-motion: reduce) {
+    #crop-selection-overlay {
+        transition: none !important;
+    }
+    
+    #crop-selection-overlay.animate {
+        animation: none !important;
+    }
+    
+    #crop-instruction {
+        animation: none !important;
+    }
+    
+    .crop-status {
+        animation: none !important;
+    }
+    
+    #crop-dimming-overlay {
+        transition: none !important;
+    }
+}

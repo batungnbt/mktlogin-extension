@@ -49,6 +49,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true });
             break;
             
+        case 'PROCESS_CROP_AREA':
+            // Handle crop area processing
+            handleCropAreaProcessing(message, sender, sendResponse);
+            return true; // Keep channel open for async response
+            
+        case 'DOWNLOAD_CROPPED_IMAGE':
+            downloadCroppedImage(message.imageUrl);
+            sendResponse({ success: true });
+            break;
+            
         case 'SELECTION_DEACTIVATED':
             // Notify popup that selection was deactivated via ESC key
             chrome.runtime.sendMessage({
@@ -63,6 +73,71 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     return true; // Keep message channel open
 });
+
+// Handle crop area processing
+async function handleCropAreaProcessing(message, sender, sendResponse) {
+    try {
+        const { cropArea, windowSize } = message;
+        const tabId = sender.tab.id;
+        
+        console.log('Processing crop area:', cropArea);
+        
+        // Capture the visible tab
+        const dataUrl = await chrome.tabs.captureVisibleTab(sender.tab.windowId, {
+            format: 'png'
+        });
+        
+        // Send the captured image back to content script for processing
+        chrome.tabs.sendMessage(tabId, {
+            type: 'PROCESS_CAPTURED_IMAGE',
+            dataUrl: dataUrl,
+            cropArea: cropArea,
+            windowSize: windowSize
+        });
+        
+        // Send success response
+        sendResponse({ success: true });
+        
+    } catch (error) {
+        console.error('Error processing crop area:', error);
+        sendResponse({ success: false, error: error.message });
+        
+        // Notify popup about error
+        chrome.runtime.sendMessage({
+            type: 'CROP_AREA_PROCESSED',
+            success: false,
+            error: error.message
+        }).catch(err => {
+            console.log('Popup not available:', err.message);
+        });
+    }
+}
+
+// Download cropped image
+async function downloadCroppedImage(imageUrl) {
+    const filename = `cropped-image-${Date.now()}.png`;
+    
+    await chrome.downloads.download({
+        url: imageUrl,
+        filename: filename,
+        saveAs: false
+    });
+    
+    // Clean up the object URL only if it's a blob URL
+    try {
+        if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('blob:')) {
+            setTimeout(() => {
+                try {
+                    URL.revokeObjectURL(imageUrl);
+                } catch (error) {
+                    console.log('Could not revoke object URL:', error);
+                }
+            }, 1000);
+        }
+    } catch (error) {
+        console.log('Error checking URL type:', error);
+    }
+}
 
 // Extension icon click will open popup (default behavior)
 

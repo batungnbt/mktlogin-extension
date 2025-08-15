@@ -7,32 +7,23 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>🎯 XPath Extractor</h2>
-            <p>Click vào phần tử trên trang để lấy XPath</p>
+            <h2>🛠️ Web Tools</h2>
+            <p>Chọn chức năng bạn muốn sử dụng</p>
         </div>
         
-        <div class="instructions-guide">
-            <h3>📖 Hướng dẫn sử dụng:</h3>
-            <div class="instruction-item">
-                <span class="instruction-icon">🖱️</span>
-                <span>Click chuột: Chọn phần tử</span>
-            </div>
-            <div class="instruction-item">
-                <span class="instruction-icon">⌨️</span>
-                <span>Phím mũi tên: Di chuyển lên/xuống/trái/phải</span>
-            </div>
-            <div class="instruction-item">
-                <span class="instruction-icon">🚪</span>
-                <span>Phím ESC: Thoát chế độ chọn</span>
-            </div>
+        <div class="main-buttons">
+            <button id="xpathBtn" class="btn btn-feature">
+                <div class="btn-icon">🎯</div>
+                <div class="btn-title">XPath Extractor</div>
+                <div class="btn-description">Trích xuất XPath từ phần tử</div>
+            </button>
+            
+            <button id="cropBtn" class="btn btn-feature">
+                <div class="btn-icon">📸</div>
+                <div class="btn-title">Crop Image</div>
+                <div class="btn-description">Crop vùng ảnh trên trang</div>
+            </button>
         </div>
-        
-        <div class="controls">
-            <button id="toggleBtn" class="btn btn-primary">Bật chế độ chọn</button>
-            <button id="clearBtn" class="btn btn-secondary">Xóa</button>
-        </div>
-        
-
         
         <div class="status">
             <span id="status">Sẵn sàng</span>

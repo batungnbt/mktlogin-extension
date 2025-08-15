@@ -32,86 +32,70 @@ body {
     opacity: 0.9;
 }
 
-/* Instructions Guide Styling */
-.instructions-guide {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.instructions-guide h3 {
-    font-size: 14px;
-    margin-bottom: 12px;
-    color: #FFD700;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
-
-.instruction-item {
+/* Main Buttons */
+.main-buttons {
     display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.btn-feature {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    font-size: 12px;
-    opacity: 0.95;
-}
-
-.instruction-item:last-child {
-    margin-bottom: 0;
-}
-
-.instruction-icon {
-    font-size: 14px;
-    width: 20px;
-    text-align: center;
-}
-
-
-
-.controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.btn {
-    padding: 10px 16px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
+    padding: 20px 15px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: white;
     cursor: pointer;
     transition: all 0.3s ease;
-    flex: 1;
+    text-align: center;
+    min-height: 100px;
+    position: relative;
+    overflow: hidden;
 }
 
-.btn-primary {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.btn-primary:hover {
-    background: rgba(255, 255, 255, 0.3);
+.btn-feature:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+    border-color: rgba(255, 255, 255, 0.4);
     transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
-.btn-primary.active {
-    background: #4CAF50;
-    border-color: #4CAF50;
+.btn-feature:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+.btn-feature.active {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1));
+    border-color: rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
 }
 
-.btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
+.btn-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
+
+.btn-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #FFD700;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.btn-description {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.3;
+}
+
+/* Legacy control styles removed - using new btn-feature styles */
 
 
 
@@ -176,4 +160,51 @@ body {
 
 .container > * {
     animation: fadeIn 0.3s ease-out;
+}
+
+/* Crop Image Section Styling */
+.crop-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.crop-section h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: #FFD700;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.crop-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.crop-controls .btn {
+    flex: 1;
+    min-width: 80px;
+    font-size: 12px;
+    padding: 8px 12px;
+}
+
+.btn-success {
+    background: rgba(76, 175, 80, 0.8);
+    color: white;
+    border: 1px solid rgba(76, 175, 80, 0.9);
+}
+
+.btn-success:hover:not(:disabled) {
+    background: rgba(76, 175, 80, 0.9);
+    transform: translateY(-2px);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
 }

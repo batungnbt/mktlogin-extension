@@ -13,6 +13,18 @@ class XPathSelector {
       keydown: this.handleKeyDown.bind(this),
     };
 
+    // Crop mode properties
+    this.isCropActive = false;
+    this.cropStartX = 0;
+    this.cropStartY = 0;
+    this.cropEndX = 0;
+    this.cropEndY = 0;
+    this.isDragging = false;
+    this.cropOverlay = null;
+    this.dimmingOverlay = null;
+    this.cropInstruction = null;
+    this.cropHandlers = null;
+
     this.setupMessageListener();
   }
 
@@ -34,6 +46,19 @@ class XPathSelector {
         sendResponse({ success: true });
       } else if (message.type === "DEACTIVATE_SELECTION") {
         this.deactivate();
+        sendResponse({ success: true });
+      } else if (message.type === "ACTIVATE_CROP_MODE") {
+        this.activateCropMode();
+        sendResponse({ success: true });
+      } else if (message.type === "DEACTIVATE_CROP_MODE") {
+        this.deactivateCropMode();
+        sendResponse({ success: true });
+      } else if (message.type === "PROCESS_CAPTURED_IMAGE") {
+        this.processCapturedImage(
+          message.dataUrl,
+          message.cropArea,
+          message.windowSize
+        );
         sendResponse({ success: true });
       }
 
@@ -104,8 +129,6 @@ class XPathSelector {
         `;
     document.body.appendChild(this.selectedOverlay);
   }
-
-
 
   addEventListeners() {
     // Sử dụng capture: true để chặn event ở giai đoạn capture
@@ -192,7 +215,12 @@ class XPathSelector {
     if (!this.isActive) return;
 
     const element = event.target;
-    if (element === this.overlay || element === this.tooltip || element === this.selectedOverlay) return;
+    if (
+      element === this.overlay ||
+      element === this.tooltip ||
+      element === this.selectedOverlay
+    )
+      return;
 
     // Don't trigger selection if clicking on XPath panel
     if (element.closest("#xpath-extractor-panel")) return;
@@ -1097,7 +1125,370 @@ class XPathSelector {
     }
   }
 
+  // Crop Mode Methods
+  activateCropMode() {
+    console.log("Activating crop mode...");
+    if (this.isCropActive) return;
 
+    this.isCropActive = true;
+    this.cropStartX = 0;
+    this.cropStartY = 0;
+    this.cropEndX = 0;
+    this.cropEndY = 0;
+    this.isDragging = false;
+
+    this.createCropOverlay();
+    this.addCropEventListeners();
+
+    // Add visual indicator
+    document.body.style.cursor = "crosshair";
+    document.body.classList.add("crop-mode-active");
+
+    // Show instruction
+    this.showCropInstruction();
+    console.log("Crop mode activated successfully");
+  }
+
+  deactivateCropMode() {
+    if (!this.isCropActive) return;
+
+    this.isCropActive = false;
+    this.removeCropEventListeners();
+    this.removeCropOverlay();
+    this.removeCropInstruction();
+
+    // Reset cursor and class
+    document.body.style.cursor = "";
+    document.body.classList.remove("crop-mode-active");
+  }
+
+  createCropOverlay() {
+    // Create crop selection overlay
+    this.cropOverlay = document.createElement("div");
+    this.cropOverlay.id = "crop-selection-overlay";
+    this.cropOverlay.style.cssText = `
+      position: fixed !important;
+      border: none !important;
+      background: transparent !important;
+      z-index: 999999 !important;
+      display: none !important;
+      pointer-events: none !important;
+      box-shadow: none !important;
+      transition: all 0.1s ease !important;
+    `;
+    document.body.appendChild(this.cropOverlay);
+
+    // Create dimming overlay
+    this.dimmingOverlay = document.createElement("div");
+    this.dimmingOverlay.id = "crop-dimming-overlay";
+    this.dimmingOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 999998;
+      pointer-events: none;
+      display: block;
+    `;
+    document.body.appendChild(this.dimmingOverlay);
+  }
+
+  addCropEventListeners() {
+    this.cropHandlers = {
+      mousedown: this.handleCropMouseDown.bind(this),
+      mousemove: this.handleCropMouseMove.bind(this),
+      mouseup: this.handleCropMouseUp.bind(this),
+      keydown: this.handleCropKeyDown.bind(this),
+    };
+
+    document.addEventListener("mousedown", this.cropHandlers.mousedown, true);
+    document.addEventListener("mousemove", this.cropHandlers.mousemove, true);
+    document.addEventListener("mouseup", this.cropHandlers.mouseup, true);
+    document.addEventListener("keydown", this.cropHandlers.keydown, true);
+  }
+
+  removeCropEventListeners() {
+    if (this.cropHandlers) {
+      document.removeEventListener(
+        "mousedown",
+        this.cropHandlers.mousedown,
+        true
+      );
+      document.removeEventListener(
+        "mousemove",
+        this.cropHandlers.mousemove,
+        true
+      );
+      document.removeEventListener("mouseup", this.cropHandlers.mouseup, true);
+      document.removeEventListener("keydown", this.cropHandlers.keydown, true);
+    }
+  }
+
+  handleCropMouseDown(event) {
+    console.log(
+      "Crop mousedown event:",
+      event,
+      "isCropActive:",
+      this.isCropActive
+    );
+    if (!this.isCropActive) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.isDragging = true;
+    this.cropStartX = event.clientX;
+    this.cropStartY = event.clientY;
+    this.cropEndX = event.clientX;
+    this.cropEndY = event.clientY;
+
+    console.log("Starting crop at:", this.cropStartX, this.cropStartY);
+    this.updateCropOverlay();
+  }
+
+  handleCropMouseMove(event) {
+    if (!this.isCropActive || !this.isDragging) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.cropEndX = event.clientX;
+    this.cropEndY = event.clientY;
+
+    this.updateCropOverlay();
+  }
+
+  handleCropMouseUp(event) {
+    if (!this.isCropActive || !this.isDragging) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.isDragging = false;
+
+    // Calculate crop area
+    const cropArea = {
+      x: Math.min(this.cropStartX, this.cropEndX),
+      y: Math.min(this.cropStartY, this.cropEndY),
+      width: Math.abs(this.cropEndX - this.cropStartX),
+      height: Math.abs(this.cropEndY - this.cropStartY),
+    };
+
+    // Only proceed if area is large enough
+    if (cropArea.width > 10 && cropArea.height > 10) {
+      this.processCropArea(cropArea);
+    }
+  }
+
+  handleCropKeyDown(event) {
+    if (!this.isCropActive) return;
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+
+      this.deactivateCropMode();
+
+      // Notify background script
+      chrome.runtime.sendMessage({
+        type: "CROP_MODE_DEACTIVATED",
+      });
+    }
+  }
+
+  updateCropOverlay() {
+    if (!this.cropOverlay || !this.dimmingOverlay) return;
+
+    const x = Math.min(this.cropStartX, this.cropEndX);
+    const y = Math.min(this.cropStartY, this.cropEndY);
+    const width = Math.abs(this.cropEndX - this.cropStartX);
+    const height = Math.abs(this.cropEndY - this.cropStartY);
+
+    // Update crop selection overlay (green border)
+    this.cropOverlay.style.left = x + "px";
+    this.cropOverlay.style.top = y + "px";
+    this.cropOverlay.style.width = width + "px";
+    this.cropOverlay.style.height = height + "px";
+    this.cropOverlay.style.setProperty("display", "block", "important");
+
+    // Update dimming overlay with clip-path to create "hole" effect
+    // This makes the crop area appear bright while everything else is dimmed
+    const clipPath = `polygon(
+      0% 0%, 
+      0% 100%, 
+      ${x}px 100%, 
+      ${x}px ${y}px, 
+      ${x + width}px ${y}px, 
+      ${x + width}px ${y + height}px, 
+      ${x}px ${y + height}px, 
+      ${x}px 100%, 
+      100% 100%, 
+      100% 0%
+    )`;
+
+    this.dimmingOverlay.style.clipPath = clipPath;
+    this.dimmingOverlay.style.display = "block";
+  }
+
+  async processCropArea(cropArea) {
+    try {
+      // Send crop area to background script for processing
+      const response = await chrome.runtime.sendMessage({
+        type: "PROCESS_CROP_AREA",
+        cropArea: cropArea,
+        windowSize: {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        },
+      });
+
+      if (response && response.success) {
+        // Success will be handled by processCapturedImage
+      } else {
+        this.showCropStatus("Lỗi khi crop ảnh", "error");
+      }
+    } catch (error) {
+      console.error("Error processing crop area:", error);
+      this.showCropStatus("Lỗi khi crop ảnh", "error");
+    }
+  }
+
+  async processCapturedImage(dataUrl, cropArea, windowSize) {
+    try {
+      // Create image and canvas for cropping
+      const img = new Image();
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = cropArea.width;
+          canvas.height = cropArea.height;
+          const ctx = canvas.getContext("2d");
+
+          // Calculate scale factors
+          const scaleX = img.width / windowSize.width;
+          const scaleY = img.height / windowSize.height;
+
+          // Adjust crop coordinates for image scale
+          const scaledX = cropArea.x * scaleX;
+          const scaledY = cropArea.y * scaleY;
+          const scaledWidth = cropArea.width * scaleX;
+          const scaledHeight = cropArea.height * scaleY;
+
+          // Draw cropped portion
+          ctx.drawImage(
+            img,
+            scaledX,
+            scaledY,
+            scaledWidth,
+            scaledHeight,
+            0,
+            0,
+            cropArea.width,
+            cropArea.height
+          );
+
+          // Convert canvas to blob and download
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+
+              // Send to background for download
+              chrome.runtime.sendMessage({
+                type: "DOWNLOAD_CROPPED_IMAGE",
+                imageUrl: url,
+              });
+
+              this.showCropStatus("Đã crop thành công!", "success");
+              this.deactivateCropMode();
+            } else {
+              this.showCropStatus("Lỗi khi tạo ảnh crop", "error");
+            }
+          }, "image/png");
+        } catch (error) {
+          console.error("Error cropping image:", error);
+          this.showCropStatus("Lỗi khi crop ảnh", "error");
+        }
+      };
+
+      img.onerror = () => {
+        this.showCropStatus("Lỗi khi tải ảnh", "error");
+      };
+
+      img.src = dataUrl;
+    } catch (error) {
+      console.error("Error processing captured image:", error);
+      this.showCropStatus("Lỗi khi xử lý ảnh", "error");
+    }
+  }
+
+  showCropInstruction() {
+    this.cropInstruction = document.createElement("div");
+    this.cropInstruction.id = "crop-instruction";
+    this.cropInstruction.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      z-index: 1000000;
+      pointer-events: none;
+    `;
+    this.cropInstruction.textContent =
+      "Kéo chuột để chọn vùng crop. Nhấn ESC để thoát.";
+    document.body.appendChild(this.cropInstruction);
+  }
+
+  removeCropInstruction() {
+    if (this.cropInstruction) {
+      this.cropInstruction.remove();
+      this.cropInstruction = null;
+    }
+  }
+
+  showCropStatus(message, type) {
+    const status = document.createElement("div");
+    status.style.cssText = `
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${
+        type === "success" ? "rgba(76, 175, 80, 0.9)" : "rgba(244, 67, 54, 0.9)"
+      };
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      z-index: 1000000;
+      pointer-events: none;
+    `;
+    status.textContent = message;
+    document.body.appendChild(status);
+
+    setTimeout(() => {
+      status.remove();
+    }, 3000);
+  }
+
+  removeCropOverlay() {
+    if (this.cropOverlay) {
+      this.cropOverlay.remove();
+      this.cropOverlay = null;
+    }
+    if (this.dimmingOverlay) {
+      this.dimmingOverlay.remove();
+      this.dimmingOverlay = null;
+    }
+  }
 }
 
 // Initialize XPath selector
