@@ -54,10 +54,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             handleCropAreaProcessing(message, sender, sendResponse);
             return true; // Keep channel open for async response
             
-        case 'DOWNLOAD_CROPPED_IMAGE':
-            downloadCroppedImage(message.imageUrl);
-            sendResponse({ success: true });
-            break;
+
             
         case 'SELECTION_DEACTIVATED':
             // Notify popup that selection was deactivated via ESC key
@@ -110,32 +107,6 @@ async function handleCropAreaProcessing(message, sender, sendResponse) {
         }).catch(err => {
             console.log('Popup not available:', err.message);
         });
-    }
-}
-
-// Download cropped image
-async function downloadCroppedImage(imageUrl) {
-    const filename = `cropped-image-${Date.now()}.png`;
-    
-    await chrome.downloads.download({
-        url: imageUrl,
-        filename: filename,
-        saveAs: false
-    });
-    
-    // Clean up the object URL only if it's a blob URL
-    try {
-        if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('blob:')) {
-            setTimeout(() => {
-                try {
-                    URL.revokeObjectURL(imageUrl);
-                } catch (error) {
-                    console.log('Could not revoke object URL:', error);
-                }
-            }, 1000);
-        }
-    } catch (error) {
-        console.log('Error checking URL type:', error);
     }
 }
 

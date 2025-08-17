@@ -418,22 +418,24 @@ class XPathSelector {
             <div style="padding: 16px; border-bottom: 1px solid #333;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <h3 style="margin: 0; color: #4CAF50; font-size: 14px; font-weight: 600;">XPath Options</h3>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <button id="xpath-nav-up" style="background: #333; border: none; color: #4CAF50; cursor: pointer; font-size: 14px; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; transition: background 0.2s ease;" title="Di chuyển lên element cha" onmouseover="this.style.background='#4CAF50'; this.style.color='#fff'" onmouseout="this.style.background='#333'; this.style.color='#4CAF50'">↑</button>
-                        <button id="xpath-nav-down" style="background: #333; border: none; color: #4CAF50; cursor: pointer; font-size: 14px; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; transition: background 0.2s ease;" title="Di chuyển xuống element con" onmouseover="this.style.background='#4CAF50'; this.style.color='#fff'" onmouseout="this.style.background='#333'; this.style.color='#4CAF50'">↓</button>
-                        <button id="xpath-panel-close" style="background: none; border: none; color: #999; cursor: pointer; font-size: 16px; padding: 4px;">✕</button>
-                    </div>
+                    <button id="xpath-panel-close" style="background: none; border: none; color: #999; cursor: pointer; font-size: 16px; padding: 4px;">✕</button>
                 </div>
-                <div style="font-size: 11px; color: #999;">
-                    Element: <span style="color: #4CAF50;">${
-                      elementInfo.tagName?.toLowerCase() || "unknown"
-                    }</span>
-                    ${elementInfo.id ? `#${elementInfo.id}` : ""}
-                    ${
-                      elementInfo.className
-                        ? `.${elementInfo.className.split(" ").join(".")}`
-                        : ""
-                    }
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 11px; color: #999;">
+                        Element: <span style="color: #4CAF50;">${
+                          elementInfo.tagName?.toLowerCase() || "unknown"
+                        }</span>
+                        ${elementInfo.id ? `#${elementInfo.id}` : ""}
+                        ${
+                          elementInfo.className
+                            ? `.${elementInfo.className.split(" ").join(".")}`
+                            : ""
+                        }
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button id="xpath-nav-up" style="background: #333; border: none; color: #4CAF50; cursor: pointer !important; font-size: 14px; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; transition: background 0.2s ease;" title="Di chuyển lên element cha" onmouseover="this.style.background='#4CAF50'; this.style.color='#fff'" onmouseout="this.style.background='#333'; this.style.color='#4CAF50'"><svg viewBox="0 0 24 24" fill="currentColor" height="16" width="16" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(90deg); pointer-events: none;"><g><path fill="none" d="M0 0h24v24H0z"></path><path fill-rule="nonzero" d="M7.828 11H20v2H7.828l5.364 5.364-1.414 1.414L4 12l7.778-7.778 1.414 1.414z"></path></g></svg></button>
+                        <button id="xpath-nav-down" style="background: #333; border: none; color: #4CAF50; cursor: pointer !important; font-size: 14px; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; transition: background 0.2s ease;" title="Di chuyển xuống element con" onmouseover="this.style.background='#4CAF50'; this.style.color='#fff'" onmouseout="this.style.background='#333'; this.style.color='#4CAF50'"><svg viewBox="0 0 24 24" fill="currentColor" height="16" width="16" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-90deg); pointer-events: none;"><g><path fill="none" d="M0 0h24v24H0z"></path><path fill-rule="nonzero" d="M7.828 11H20v2H7.828l5.364 5.364-1.414 1.414L4 12l7.778-7.778 1.414 1.414z"></path></g></svg></button>
+                    </div>
                 </div>
             </div>
             <div style="max-height: 300px; overflow-y: auto;">
@@ -1390,23 +1392,12 @@ class XPathSelector {
             cropArea.height
           );
 
-          // Convert canvas to blob and download
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const url = URL.createObjectURL(blob);
+          // Convert canvas to data URL and show modal
+          const croppedDataUrl = canvas.toDataURL("image/png");
 
-              // Send to background for download
-              chrome.runtime.sendMessage({
-                type: "DOWNLOAD_CROPPED_IMAGE",
-                imageUrl: url,
-              });
-
-              this.showCropStatus("Đã crop thành công!", "success");
-              this.deactivateCropMode();
-            } else {
-              this.showCropStatus("Lỗi khi tạo ảnh crop", "error");
-            }
-          }, "image/png");
+          // Show crop result modal
+          this.showCropResultModal(croppedDataUrl);
+          this.deactivateCropMode();
         } catch (error) {
           console.error("Error cropping image:", error);
           this.showCropStatus("Lỗi khi crop ảnh", "error");
@@ -1487,6 +1478,179 @@ class XPathSelector {
     if (this.dimmingOverlay) {
       this.dimmingOverlay.remove();
       this.dimmingOverlay = null;
+    }
+  }
+
+  showCropResultModal(dataUrl) {
+    // Create modal overlay
+    const modalOverlay = document.createElement("div");
+    modalOverlay.id = "crop-result-modal-overlay";
+    modalOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000001;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    `;
+
+    // Create modal content
+    const modalContent = document.createElement("div");
+    modalContent.style.cssText = `
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow: auto;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    `;
+
+    // Create preview image
+    const previewImg = document.createElement("img");
+    previewImg.src = dataUrl;
+    previewImg.style.cssText = `
+      max-width: 100%;
+      max-height: 400px;
+      display: block;
+      margin: 0 auto 20px auto;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    `;
+
+    // Create title
+    const title = document.createElement("h3");
+    title.textContent = "Crop Image Result";
+    title.style.cssText = `
+      margin: 0 0 15px 0;
+      text-align: center;
+      color: #333;
+      font-family: Arial, sans-serif;
+    `;
+
+    // Create button container
+    const buttonContainer = document.createElement("div");
+    buttonContainer.style.cssText = `
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    `;
+
+    // Create Download button
+    const downloadBtn = document.createElement("button");
+    downloadBtn.textContent = "Download Image";
+    downloadBtn.style.cssText = `
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+    `;
+
+    // Create Copy Base64 button
+    const copyBtn = document.createElement("button");
+    copyBtn.textContent = "Copy Base64 Data";
+    copyBtn.style.cssText = `
+      background: #2196F3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+    `;
+
+    // Create Close button
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "Close";
+    closeBtn.style.cssText = `
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+    `;
+
+    // Add event listeners
+    downloadBtn.addEventListener("click", () => {
+      this.downloadImage(dataUrl);
+      modalOverlay.remove();
+    });
+
+    copyBtn.addEventListener("click", () => {
+      this.copyBase64ToClipboard(dataUrl);
+    });
+
+    closeBtn.addEventListener("click", () => {
+      modalOverlay.remove();
+    });
+
+    // Close modal when clicking overlay
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) {
+        modalOverlay.remove();
+      }
+    });
+
+    // Assemble modal
+    buttonContainer.appendChild(downloadBtn);
+    buttonContainer.appendChild(copyBtn);
+    buttonContainer.appendChild(closeBtn);
+
+    modalContent.appendChild(title);
+    modalContent.appendChild(previewImg);
+    modalContent.appendChild(buttonContainer);
+
+    modalOverlay.appendChild(modalContent);
+    document.body.appendChild(modalOverlay);
+  }
+
+  downloadImage(dataUrl) {
+    // Convert data URL to blob
+    const byteCharacters = atob(dataUrl.split(",")[1]);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: "image/png" });
+
+    // Create download link
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `cropped-image-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
+
+    this.showCropStatus("Đã tải xuống thành công!", "success");
+  }
+
+  async copyBase64ToClipboard(dataUrl) {
+    try {
+      await navigator.clipboard.writeText(dataUrl);
+      this.showCropStatus("Đã copy Base64 data!", "success");
+    } catch (error) {
+      console.error("Error copying to clipboard:", error);
+      this.showCropStatus("Lỗi khi copy Base64 data", "error");
     }
   }
 }
