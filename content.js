@@ -1132,6 +1132,11 @@ class XPathSelector {
     console.log("Activating crop mode...");
     if (this.isCropActive) return;
 
+    // Deactivate XPath mode if active
+    if (this.isActive) {
+      this.deactivate();
+    }
+
     this.isCropActive = true;
     this.cropStartX = 0;
     this.cropStartY = 0;
