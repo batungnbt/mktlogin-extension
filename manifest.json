@@ -7,7 +7,7 @@
   "permissions": ["activeTab", "storage", "scripting", "tabs", "downloads"],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "XPath Extractor",
+    "default_title": "MKTLogin Extension",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
