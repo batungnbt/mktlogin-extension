@@ -6,6 +6,7 @@ class XPathExtractor {
         this.bindEvents();
         this.getCurrentTab();
         this.checkStoredXPath();
+        this.checkElectronData();
     }
 
     initializeElements() {
@@ -30,6 +31,10 @@ class XPathExtractor {
                 this.isActive = false;
                 this.xpathBtn.classList.remove('active');
                 this.updateStatus('Chế độ chọn đã tắt (ESC)', '');
+                sendResponse({ success: true });
+            } else if (message.type === 'ELECTRON_DATA_AVAILABLE') {
+                // Nhận data từ Electron app
+                this.handleElectronData(message.data);
                 sendResponse({ success: true });
             }
             
@@ -131,6 +136,81 @@ class XPathExtractor {
         } catch (error) {
             console.log('No stored XPath data available');
         }
+    }
+
+    async checkElectronData() {
+        try {
+            const result = await chrome.storage.local.get(['electronData', 'electronTimestamp']);
+            if (result.electronData && result.electronTimestamp) {
+                // Kiểm tra xem data có còn mới không (trong vòng 5 phút)
+                const now = Date.now();
+                const dataAge = now - result.electronTimestamp;
+                if (dataAge < 5 * 60 * 1000) { // 5 phút
+                    console.log('Found recent Electron data:', result.electronData);
+                    this.handleElectronData(result.electronData);
+                    // Xóa data sau khi sử dụng
+                    chrome.storage.local.remove(['electronData', 'electronTimestamp']);
+                }
+            }
+        } catch (error) {
+            console.log('No Electron data available:', error);
+        }
+    }
+
+    handleElectronData(data) {
+        console.log('Handling Electron data:', data);
+        
+        // Hiển thị thông báo trong popup
+        this.updateStatus(`Nhận lệnh từ MKTLogin: ${data.action}`, 'success');
+        
+        // Tạo section hiển thị thông tin từ Electron
+        this.displayElectronInfo(data);
+        
+        // Xử lý action tương ứng
+        switch (data.action) {
+            case 'openTool':
+                this.updateStatus(`Tool "${data.toolName}" đã được kích hoạt`, 'success');
+                break;
+            case 'activateXPath':
+                this.activateXPathMode();
+                break;
+            case 'activateCrop':
+                this.activateCropMode();
+                break;
+        }
+    }
+
+    displayElectronInfo(data) {
+        // Tìm hoặc tạo section hiển thị thông tin Electron
+        let electronSection = document.getElementById('electronInfo');
+        if (!electronSection) {
+            electronSection = document.createElement('div');
+            electronSection.id = 'electronInfo';
+            electronSection.style.cssText = `
+                margin-top: 15px;
+                padding: 10px;
+                background: #f0f8ff;
+                border: 1px solid #4CAF50;
+                border-radius: 4px;
+                font-size: 12px;
+            `;
+            document.querySelector('.container').appendChild(electronSection);
+        }
+        
+        electronSection.innerHTML = `
+            <h4 style="margin: 0 0 8px 0; color: #4CAF50;">📡 MKTLogin App</h4>
+            <div><strong>Action:</strong> ${data.action}</div>
+            ${data.toolName ? `<div><strong>Tool:</strong> ${data.toolName}</div>` : ''}
+            ${data.message ? `<div><strong>Message:</strong> ${data.message}</div>` : ''}
+            <div><strong>Time:</strong> ${new Date(data.timestamp).toLocaleTimeString()}</div>
+        `;
+        
+        // Tự động ẩn sau 10 giây
+        setTimeout(() => {
+            if (electronSection.parentNode) {
+                electronSection.parentNode.removeChild(electronSection);
+            }
+        }, 10000);
     }
 
     async ensureContentScriptInjected() {

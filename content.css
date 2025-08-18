@@ -15,17 +15,39 @@
 
 /* Selection mode cursor */
 body.xpath-selection-active {
-    cursor: crosshair !important;
+    cursor: none !important;
 }
 
 body.xpath-selection-active * {
-    cursor: crosshair !important;
+    cursor: none !important;
 }
 
 /* Override cursor for XPath panel */
+#xpath-extractor-panel #xpath-panel-header {
+    cursor: move !important;
+}
+
+#xpath-extractor-panel #xpath-panel-header * {
+    cursor: move !important;
+}
+
+#xpath-extractor-panel #move-icon {
+    cursor: move !important;
+}
 body.xpath-selection-active #xpath-extractor-panel,
 body.xpath-selection-active #xpath-extractor-panel * {
     cursor: default !important;
+}
+
+/* Specific override for header and its children */
+body.xpath-selection-active #xpath-extractor-panel #xpath-panel-header,
+body.xpath-selection-active #xpath-extractor-panel #xpath-panel-header * {
+    cursor: move !important;
+}
+
+body.xpath-selection-active #xpath-extractor-panel #move-icon {
+    cursor: move !important;
+}
 }
 
 /* Prevent text selection during XPath selection */
@@ -185,7 +207,7 @@ body.xpath-selection-active::before {
 
 /* Crop Mode Styles */
 body.crop-mode-active {
-    cursor: crosshair !important;
+    cursor: none !important;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
@@ -193,7 +215,7 @@ body.crop-mode-active {
 }
 
 body.crop-mode-active * {
-    cursor: crosshair !important;
+    cursor: none !important;
     pointer-events: auto !important;
 }
 

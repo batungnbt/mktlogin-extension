@@ -49,6 +49,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true });
             break;
             
+        case 'OPEN_POPUP_FROM_ELECTRON':
+            // Nhận yêu cầu mở popup từ Electron app thông qua content script
+            console.log('Request to open popup from Electron app:', message.data);
+            
+            // Lưu trữ data từ Electron để popup có thể truy cập
+            chrome.storage.local.set({
+                electronData: message.data,
+                electronTimestamp: Date.now()
+            });
+            
+            // Thông báo cho popup nếu đang mở
+            chrome.runtime.sendMessage({
+                type: 'ELECTRON_DATA_AVAILABLE',
+                data: message.data
+            }).catch(error => {
+                console.log('Popup not open, data stored for later access');
+            });
+            
+            sendResponse({ success: true });
+            break;
+            
         case 'PROCESS_CROP_AREA':
             // Handle crop area processing
             handleCropAreaProcessing(message, sender, sendResponse);
