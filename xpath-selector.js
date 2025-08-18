@@ -594,11 +594,7 @@ class XPathSelector {
                 ${this.generateXPathOptionsHTML(xpathOptions)}
             </div>
             <div style="padding: 12px; border-top: 1px solid #333; background: #222;">
-                <div style="display: flex; gap: 8px;">
-                    <button id="xpath-copy-selected" style="flex: 1; padding: 8px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer !important; font-size: 12px;">Copy Selected</button>
-                    <button id="xpath-close-panel" style="padding: 8px 12px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer !important; font-size: 12px;">Close</button>
-                </div>
-                <div id="xpath-status" style="margin-top: 8px; font-size: 11px; color: #999; text-align: center;">Click an XPath option to select</div>
+                <div id="xpath-status" style="margin-top: 8px; font-size: 11px; color: #999; text-align: center;">Chọn một Xpath để sao chép</div>
             </div>
         `;
 
@@ -608,10 +604,7 @@ class XPathSelector {
     // Bind events
     this.bindXPathPanelEvents(panel, xpathOptions);
 
-    // Auto-select first option
-    if (xpathOptions.length > 0) {
-      this.selectXPathOption(0, xpathOptions);
-    }
+    // No auto-selection - user must click to select and copy
 
     // No need to adjust position since panel is fixed at top-right
     // this.adjustPanelPosition(panel);
@@ -646,11 +639,7 @@ class XPathSelector {
       this.removeXPathPanel();
     });
 
-    panel.querySelector("#xpath-close-panel").addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      this.removeXPathPanel();
-    });
+    // Close button event is already handled above for #xpath-panel-close
 
     // Navigation button events
     panel.querySelector("#xpath-nav-up").addEventListener("click", (e) => {
@@ -674,14 +663,7 @@ class XPathSelector {
       });
     });
 
-    // Copy selected XPath
-    panel
-      .querySelector("#xpath-copy-selected")
-      .addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.copySelectedXPath();
-      });
+    // Copy selected XPath functionality is now integrated into selectXPathOption
 
     // Prevent panel clicks from bubbling to document
     panel.addEventListener("click", (e) => {
@@ -799,7 +781,7 @@ class XPathSelector {
     });
   }
 
-  selectXPathOption(index, xpathOptions) {
+  async selectXPathOption(index, xpathOptions) {
     const panel = document.getElementById("xpath-extractor-panel");
     if (!panel || !xpathOptions[index]) return;
 
@@ -819,11 +801,13 @@ class XPathSelector {
     // Store selected XPath
     this.selectedXPath = xpathOptions[index].xpath;
 
-    // Update status
-    const statusEl = panel.querySelector("#xpath-status");
-    if (statusEl) {
-      statusEl.textContent = `Selected: ${xpathOptions[index].type} XPath`;
-      statusEl.style.color = "#4CAF50";
+    // Automatically copy XPath to clipboard
+    try {
+      await navigator.clipboard.writeText(this.selectedXPath);
+      this.showXPathStatus("✅ Sao chép XPath thành công", "success");
+    } catch (error) {
+      console.error("Failed to copy XPath:", error);
+      this.showXPathStatus("❌ Sao chép XPath thất bại", "error");
     }
   }
 
@@ -855,7 +839,7 @@ class XPathSelector {
       // Reset after 3 seconds
       setTimeout(() => {
         if (statusEl) {
-          statusEl.textContent = "Click an XPath option to select";
+          statusEl.textContent = "Chọn một Xpath để sao chép";
           statusEl.style.color = "#999";
         }
       }, 3000);
