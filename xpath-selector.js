@@ -541,7 +541,7 @@ class XPathSelector {
     const panelTop = savedPosition ? savedPosition.top : 20;
     const panelLeft = savedPosition
       ? savedPosition.left
-      : window.innerWidth - 520;
+      : window.innerWidth - 370;
 
     // Position panel (draggable)
     panel.style.cssText = `
