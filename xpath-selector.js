@@ -510,8 +510,10 @@ class XPathSelector {
     // Highlight selected element with fixed border
     this.highlightSelectedElement(element);
 
-    // Show XPath options directly on the page
-    this.showXPathPanel(xpathOptions, elementData, element);
+    // Add 1 second delay before showing XPath panel
+    setTimeout(() => {
+      this.showXPathPanel(xpathOptions, elementData, element);
+    }, 100);
 
     // Keep selection mode active for better UX
     // User can manually turn off selection mode or press ESC
@@ -594,7 +596,11 @@ class XPathSelector {
                 ${this.generateXPathOptionsHTML(xpathOptions)}
             </div>
             <div style="padding: 12px; border-top: 1px solid #333; background: #222;">
-                <div id="xpath-status" style="margin-top: 8px; font-size: 11px; color: #999; text-align: center;">Chọn một Xpath để sao chép</div>
+                <div id="xpath-status" style="margin-top: 8px; font-size: 11px; color: #ffffffe0; text-align: center;">Chọn một Xpath để gửi</div>
+                <div style="margin-top: 8px; font-size: 12px; color: #ffffffe0; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <kbd style="background: #333; color: #ffffffe0; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px; border: 1px solid #555;">ESC</kbd>
+                    <span>để đóng panel</span>
+                </div>
             </div>
         `;
 
@@ -801,13 +807,32 @@ class XPathSelector {
     // Store selected XPath
     this.selectedXPath = xpathOptions[index].xpath;
 
-    // Automatically copy XPath to clipboard
+    // Send XPath to API
     try {
-      await navigator.clipboard.writeText(this.selectedXPath);
-      this.showXPathStatus("✅ Sao chép XPath thành công", "success");
+      const response = await fetch(
+        "http://127.0.0.1:4980/api/v1/communicate-extension",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "send_xpath",
+            data: {
+              xpath: this.selectedXPath,
+            },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        this.showXPathStatus("✅ Gửi XPath thành công", "success");
+      } else {
+        this.showXPathStatus("❌ Gửi XPath thất bại", "error");
+      }
     } catch (error) {
-      console.error("Failed to copy XPath:", error);
-      this.showXPathStatus("❌ Sao chép XPath thất bại", "error");
+      console.error("Error sending XPath:", error);
+      this.showXPathStatus("❌ Lỗi khi gửi XPath", "error");
     }
   }
 
@@ -839,7 +864,7 @@ class XPathSelector {
       // Reset after 3 seconds
       setTimeout(() => {
         if (statusEl) {
-          statusEl.textContent = "Chọn một Xpath để sao chép";
+          statusEl.textContent = "Chọn một Xpath để gửi";
           statusEl.style.color = "#999";
         }
       }, 3000);
@@ -904,27 +929,59 @@ class XPathSelector {
     const xpaths = [];
 
     // 1. ID-based XPath (if available and unique)
-    if (
-      element.id &&
-      document.querySelectorAll(`#${element.id}`).length === 1
-    ) {
-      xpaths.push({
-        type: "ID",
-        xpath: `//*[@id="${this.escapeXPathValue(element.id)}"]`,
-        description: "Dựa trên ID (ổn định nhất)",
-      });
+    if (element.id) {
+      try {
+        // Escape CSS selector special characters
+        const escapedId = element.id.replace(
+          /([\\!"#$%&'()*+,.\/:;<=>?@\[\]^`{|}~])/g,
+          "\\$1"
+        );
+        if (document.querySelectorAll(`#${escapedId}`).length === 1) {
+          xpaths.push({
+            type: "ID",
+            xpath: `//*[@id="${this.escapeXPathValue(element.id)}"]`,
+            description: "Dựa trên ID (ổn định nhất)",
+          });
+        }
+      } catch (error) {
+        console.warn("Invalid CSS selector for ID:", element.id, error);
+        // Still add XPath even if CSS selector fails
+        xpaths.push({
+          type: "ID",
+          xpath: `//*[@id="${this.escapeXPathValue(element.id)}"]`,
+          description: "Dựa trên ID (ổn định nhất)",
+        });
+      }
     }
 
     // 2. Name attribute XPath (if available and unique)
-    if (
-      element.name &&
-      document.querySelectorAll(`[name="${element.name}"]`).length === 1
-    ) {
-      xpaths.push({
-        type: "Name",
-        xpath: `//*[@name="${this.escapeXPathValue(element.name)}"]`,
-        description: "Dựa trên thuộc tính name",
-      });
+    if (element.name) {
+      try {
+        // Escape CSS selector special characters for name attribute
+        const escapedName = element.name.replace(
+          /([\\!"#$%&'()*+,.\/:;<=>?@\[\]^`{|}~])/g,
+          "\\$1"
+        );
+        if (document.querySelectorAll(`[name="${escapedName}"]`).length === 1) {
+          xpaths.push({
+            type: "Name",
+            xpath: `//*[@name="${this.escapeXPathValue(element.name)}"]`,
+            description: "Dựa trên thuộc tính name",
+          });
+        }
+      } catch (error) {
+        console.warn(
+          "Invalid CSS selector for name attribute:",
+          element.name,
+          error
+        );
+        // Still add XPath even if CSS selector fails
+        xpaths.push({
+          type: "Name",
+          xpath: `//*[@name="${this.escapeXPathValue(element.name)}"]`,
+          description: "Dựa trên thuộc tính name",
+        });
+      }
     }
 
     // 3. Data attributes XPath
@@ -1109,19 +1166,41 @@ class XPathSelector {
 
   generateXPath(element) {
     // Priority 1: Use ID if available and unique
-    if (
-      element.id &&
-      document.querySelectorAll(`#${element.id}`).length === 1
-    ) {
-      return `//*[@id="${this.escapeXPathValue(element.id)}"]`;
+    if (element.id) {
+      try {
+        const escapedId = element.id.replace(
+          /([\\!"#$%&'()*+,.\/:;<=>?@\[\]^`{|}~])/g,
+          "\\$1"
+        );
+        if (document.querySelectorAll(`#${escapedId}`).length === 1) {
+          return `//*[@id="${this.escapeXPathValue(element.id)}"]`;
+        }
+      } catch (error) {
+        console.warn(
+          "Invalid CSS selector for ID in generateXPath:",
+          element.id,
+          error
+        );
+      }
     }
 
     // Priority 2: Use name attribute if available and unique
-    if (
-      element.name &&
-      document.querySelectorAll(`[name="${element.name}"]`).length === 1
-    ) {
-      return `//*[@name="${this.escapeXPathValue(element.name)}"]`;
+    if (element.name) {
+      try {
+        const escapedName = element.name.replace(
+          /([\\!"#$%&'()*+,.\/:;<=>?@\[\]^`{|}~])/g,
+          "\\$1"
+        );
+        if (document.querySelectorAll(`[name="${escapedName}"]`).length === 1) {
+          return `//*[@name="${this.escapeXPathValue(element.name)}"]`;
+        }
+      } catch (error) {
+        console.warn(
+          "Invalid CSS selector for name in generateXPath:",
+          element.name,
+          error
+        );
+      }
     }
 
     // Priority 3: Use data attributes if available
