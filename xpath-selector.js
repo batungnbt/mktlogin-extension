@@ -63,6 +63,9 @@ class XPathSelector {
           }
           this.activate();
           break;
+        case "deactiveXpath":
+          this.deactivate();
+          break;
         case "activateCrop":
           if (this.isCropActive) {
             this.deactivateCropMode();
