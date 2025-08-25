@@ -5,6 +5,8 @@ document.addEventListener("electronToExtension", (event) => {
     window.xpathSelector &&
     typeof window.xpathSelector.handleElectronMessage === "function"
   ) {
+    // Đặt flag để biết extension được kích hoạt từ Electron
+    window.xpathSelector.isActivatedFromElectron = true;
     window.xpathSelector.handleElectronMessage(event.detail);
   } else {
     console.error(

@@ -7,11 +7,16 @@ class XPathSelector {
     this.selectedOverlay = null;
     this.tooltip = null;
     this.hideTimeout = null;
+    this.isActivatedFromElectron = false; // Flag để theo dõi nguồn kích hoạt
     this.boundHandlers = {
       mouseover: this.handleMouseOver.bind(this),
       click: this.handleClick.bind(this),
       keydown: this.handleKeyDown.bind(this),
     };
+
+    // Đảm bảo cursor được reset về mặc định khi khởi tạo
+    document.body.style.cursor = "";
+    document.body.classList.remove("xpath-selection-active", "crop-mode-active", "hide-cursor");
 
     this.initializeCropProperties();
     this.setupMessageListener();
@@ -176,12 +181,16 @@ class XPathSelector {
       if (message.type === "PING") {
         sendResponse({ success: true, ready: true });
       } else if (message.type === "ACTIVATE_SELECTION") {
+        // Reset flag khi kích hoạt từ popup Chrome thông thường
+        this.isActivatedFromElectron = false;
         this.activate();
         sendResponse({ success: true });
       } else if (message.type === "DEACTIVATE_SELECTION") {
         this.deactivate();
         sendResponse({ success: true });
       } else if (message.type === "ACTIVATE_CROP_MODE") {
+        // Reset flag khi kích hoạt từ popup Chrome thông thường
+        this.isActivatedFromElectron = false;
         this.activateCropMode();
         sendResponse({ success: true });
       } else if (message.type === "DEACTIVATE_CROP_MODE") {
@@ -207,15 +216,19 @@ class XPathSelector {
     this.createOverlay();
     this.addEventListeners();
 
-    // Add visual indicator
-    document.body.style.cursor = "none";
+    // Add visual indicator - ẩn chuột khi được kích hoạt từ Electron
     document.body.classList.add("xpath-selection-active");
+    if (this.isActivatedFromElectron) {
+      document.body.classList.add("hide-cursor");
+    }
   }
 
   deactivate() {
     if (!this.isActive) return;
 
     this.isActive = false;
+    // Reset flag khi deactivate
+    this.isActivatedFromElectron = false;
 
     // Clear any pending timeout
     if (this.hideTimeout) {
@@ -231,7 +244,7 @@ class XPathSelector {
 
     // Reset cursor and class
     document.body.style.cursor = "";
-    document.body.classList.remove("xpath-selection-active");
+    document.body.classList.remove("xpath-selection-active", "hide-cursor");
   }
 
   createOverlay() {
@@ -239,11 +252,11 @@ class XPathSelector {
     this.overlay = document.createElement("div");
     this.overlay.id = "xpath-selector-overlay";
     this.overlay.style.cssText = `
-            position: absolute;
+            position: fixed;
             pointer-events: none;
             border: 2px solid #ff4444;
             background: rgba(255, 68, 68, 0.1);
-            z-index: 999999;
+            z-index: 2147483647;
             display: none;
             box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
         `;
@@ -253,11 +266,11 @@ class XPathSelector {
     this.selectedOverlay = document.createElement("div");
     this.selectedOverlay.id = "xpath-selector-selected-overlay";
     this.selectedOverlay.style.cssText = `
-            position: absolute;
+            position: fixed;
             pointer-events: none;
             border: 3px solid #4CAF50;
             background: rgba(76, 175, 80, 0.15);
-            z-index: 999998;
+            z-index: 2147483646;
             display: none;
             box-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
         `;
@@ -340,7 +353,19 @@ class XPathSelector {
     event.stopImmediatePropagation();
 
     const element = event.target;
-    if (element === this.overlay || element === this.selectedOverlay) return;
+    
+    // Debug log để kiểm tra element
+    console.log('MouseOver element:', element, 'tagName:', element.tagName, 'className:', element.className, 'textContent:', element.textContent?.substring(0, 50));
+    
+    if (
+      element === this.overlay ||
+      element === this.tooltip ||
+      element === this.selectedOverlay
+    )
+      return;
+
+    // Don't highlight if hovering over XPath panel
+    if (element.closest("#xpath-extractor-panel")) return;
 
     this.highlightElement(element);
   }
@@ -349,6 +374,10 @@ class XPathSelector {
     if (!this.isActive) return;
 
     const element = event.target;
+    
+    // Debug log để kiểm tra element được click
+    console.log('Click element:', element, 'tagName:', element.tagName, 'className:', element.className, 'textContent:', element.textContent?.substring(0, 50));
+    
     if (
       element === this.overlay ||
       element === this.tooltip ||
@@ -424,13 +453,11 @@ class XPathSelector {
     this.highlightedElement = element;
 
     const rect = element.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft =
-      window.pageXOffset || document.documentElement.scrollLeft;
-
+    // Sử dụng position fixed để tránh vấn đề scroll
+    this.overlay.style.position = "fixed";
     this.overlay.style.display = "block";
-    this.overlay.style.left = rect.left + scrollLeft + "px";
-    this.overlay.style.top = rect.top + scrollTop + "px";
+    this.overlay.style.left = rect.left + "px";
+    this.overlay.style.top = rect.top + "px";
     this.overlay.style.width = rect.width + "px";
     this.overlay.style.height = rect.height + "px";
   }
@@ -439,13 +466,11 @@ class XPathSelector {
     this.selectedElement = element;
 
     const rect = element.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft =
-      window.pageXOffset || document.documentElement.scrollLeft;
-
+    // Sử dụng position fixed để tránh vấn đề scroll
+    this.selectedOverlay.style.position = "fixed";
     this.selectedOverlay.style.display = "block";
-    this.selectedOverlay.style.left = rect.left + scrollLeft + "px";
-    this.selectedOverlay.style.top = rect.top + scrollTop + "px";
+    this.selectedOverlay.style.left = rect.left + "px";
+    this.selectedOverlay.style.top = rect.top + "px";
     this.selectedOverlay.style.width = rect.width + "px";
     this.selectedOverlay.style.height = rect.height + "px";
   }
@@ -577,8 +602,8 @@ class XPathSelector {
                     </div>
                     <button id="xpath-panel-close" style="background: none; border: none; color: #999; cursor: pointer !important; font-size: 16px; padding: 4px; z-index: 10; position: relative;">✕</button>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 11px; color: #999;">
+                <div style="position: relative; padding-right: 80px;">
+                    <div style="font-size: 11px; color: #999; word-wrap: break-word; overflow-wrap: break-word;">
                         Element: <span style="color: #4CAF50;">${
                           elementInfo.tagName?.toLowerCase() || "unknown"
                         }</span>
@@ -589,7 +614,7 @@ class XPathSelector {
                             : ""
                         }
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="position: absolute; top: 0; right: 0; display: flex; align-items: center; gap: 8px;">
                         <button id="xpath-nav-up" style="background: #333; border: none; color: #4CAF50; cursor: pointer !important; font-size: 14px; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; transition: background 0.2s ease;" title="Di chuyển lên element cha" onmouseover="this.style.background='#4CAF50'; this.style.color='#fff'" onmouseout="this.style.background='#333'; this.style.color='#4CAF50'"><svg viewBox="0 0 24 24" fill="currentColor" height="16" width="16" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(90deg); pointer-events: none;"><g><path fill="none" d="M0 0h24v24H0z"></path><path fill-rule="nonzero" d="M7.828 11H20v2H7.828l5.364 5.364-1.414 1.414L4 12l7.778-7.778 1.414 1.414z"></path></g></svg></button>
                         <button id="xpath-nav-down" style="background: #333; border: none; color: #4CAF50; cursor: pointer !important; font-size: 14px; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; transition: background 0.2s ease;" title="Di chuyển xuống element con" onmouseover="this.style.background='#4CAF50'; this.style.color='#fff'" onmouseout="this.style.background='#333'; this.style.color='#4CAF50'"><svg viewBox="0 0 24 24" fill="currentColor" height="16" width="16" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-90deg); pointer-events: none;"><g><path fill="none" d="M0 0h24v24H0z"></path><path fill-rule="nonzero" d="M7.828 11H20v2H7.828l5.364 5.364-1.414 1.414L4 12l7.778-7.778 1.414 1.414z"></path></g></svg></button>
                     </div>
@@ -1493,9 +1518,11 @@ class XPathSelector {
     this.createCropOverlay();
     this.addCropEventListeners();
 
-    // Add visual indicator
-    document.body.style.cursor = "none";
+    // Add visual indicator - ẩn chuột khi được kích hoạt từ Electron
     document.body.classList.add("crop-mode-active");
+    if (this.isActivatedFromElectron) {
+      document.body.classList.add("hide-cursor");
+    }
 
     // Show instruction
     this.showCropInstruction();
@@ -1512,7 +1539,10 @@ class XPathSelector {
 
     // Reset cursor and class
     document.body.style.cursor = "";
-    document.body.classList.remove("crop-mode-active");
+    document.body.classList.remove("crop-mode-active", "hide-cursor");
+    
+    // Reset flag khi tắt chế độ crop
+    this.isActivatedFromElectron = false;
   }
 
   createCropOverlay() {

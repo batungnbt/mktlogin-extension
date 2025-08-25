@@ -41,7 +41,7 @@ archive.pipe(output);
 function shouldExclude(filePath) {
   const relativePath = path.relative(sourceDir, filePath);
 
-  // Loại trừ thư mục .git, file zip đích, thư mục backup và file obfuscate
+  // Loại trừ thư mục .git, file zip đích, thư mục backup và các file script
   if (
     relativePath.startsWith(".git") ||
     relativePath === zipFileName ||
@@ -49,7 +49,8 @@ function shouldExclude(filePath) {
     relativePath === "backup" ||
     relativePath.startsWith("backup\\") ||
     relativePath.startsWith("backup/") ||
-    relativePath === "obfuscate.js"
+    relativePath === "obfuscate.js" ||
+    relativePath === "compress_extension.js"
   ) {
     return true;
   }

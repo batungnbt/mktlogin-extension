@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "MKTLogin Extension",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5ko7CTPsr9UeyRM4AlRFxnJFlDthk6kJ9OvsMFQ0bdayiS7mZP4SLl+NVj+9PYqCr76lQrRYRHiv6qWCmcBEsz0ihpVkm7G8JPI3zalArnRW7U7YZ2nkrVlu0H1OdeRwa2RVvjbO9pEETkSh68g+6J4H81Kk5BAf9/9x3kLT2FQo/HeY9vkjphqq5Tcraof0ARoBCMuFKM6UI6LO6K+zrA+TxTLxqUsXKYJMD3bi2c0J2HwORuBoaOKw7PmZps2X5tfm6bYjWJhWNbNd1qVC6MnJVXhgGDAfok0EV/07KI7TRTiLR8/oJCyHRcrKS549zBOr+BWMyLvPljvPLh65OwIDAQAB",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Tiện ích cung cấp chức năng trích xuất XPath và crop ảnh trực tiếp trên trang web với giao diện trực quan.",
   "permissions": ["activeTab", "storage", "scripting", "tabs", "downloads"],
   "action": {

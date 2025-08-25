@@ -1,11 +1,11 @@
 /* XPath Selector Styles */
 
 #xpath-selector-overlay {
-    position: absolute;
+    position: fixed;
     pointer-events: none;
     border: 2px solid #ff4444;
     background: rgba(255, 68, 68, 0.1);
-    z-index: 999999;
+    z-index: 2147483647;
     display: none;
     box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
     transition: all 0.1s ease;
@@ -13,12 +13,20 @@
 
 
 
-/* Selection mode cursor */
+/* Selection mode cursor - ẩn khi được kích hoạt từ Electron */
 body.xpath-selection-active {
-    cursor: none !important;
+    cursor: default !important;
 }
 
 body.xpath-selection-active * {
+    cursor: default !important;
+}
+
+body.xpath-selection-active.hide-cursor {
+    cursor: none !important;
+}
+
+body.xpath-selection-active.hide-cursor * {
     cursor: none !important;
 }
 
@@ -207,15 +215,29 @@ body.xpath-selection-active::before {
 
 /* Crop Mode Styles */
 body.crop-mode-active {
-    cursor: none !important;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
 }
 
+body.crop-mode-active {
+    cursor: default !important;
+}
+
 body.crop-mode-active * {
+    cursor: default !important;
+}
+
+body.crop-mode-active.hide-cursor {
     cursor: none !important;
+}
+
+body.crop-mode-active.hide-cursor * {
+    cursor: none !important;
+}
+
+body.crop-mode-active * {
     pointer-events: auto !important;
 }
 
