@@ -65,3 +65,4 @@ private-key.pem
 *.rar
 *.7z
 1cf5f31f1b662420e0167da88c9a14e5.zip
+/backup

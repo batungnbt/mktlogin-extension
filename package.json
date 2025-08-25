@@ -34,6 +34,7 @@
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
+    "javascript-obfuscator": "^4.1.1",
     "ws": "^8.14.2"
   },
   "manifest": {
